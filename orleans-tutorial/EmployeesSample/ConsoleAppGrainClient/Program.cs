@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using GrainInterfaces;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 using Orleans;
+using Orleans.Runtime.Configuration;
 
 namespace ConsoleAppGrainClient
 {
@@ -15,19 +19,20 @@ namespace ConsoleAppGrainClient
             Console.WriteLine("Waiting for Orleans Silo to start. Press Enter to proceed...");
             Console.ReadLine();
 
-            // Orleans comes with a rich XML and programmatic configuration. Here we're just going to set up with basic programmatic config
-            var config = Orleans.Runtime.Configuration.ClientConfiguration.LocalhostSilo(30000);
-            GrainClient.Initialize(config);
+            var client = new ClientBuilder()
+                .UseLocalhostClustering()
+                .Build();
 
-            var grainFactory = GrainClient.GrainFactory;
-            var e0 = grainFactory.GetGrain<IEmployee>(Guid.NewGuid());  
-            var e1 = grainFactory.GetGrain<IEmployee>(Guid.NewGuid());
-            var e2 = grainFactory.GetGrain<IEmployee>(Guid.NewGuid());
-            var e3 = grainFactory.GetGrain<IEmployee>(Guid.NewGuid());
-            var e4 = grainFactory.GetGrain<IEmployee>(Guid.NewGuid());
+            client.Connect().Wait();
 
-            var m0 = grainFactory.GetGrain<IManager>(Guid.NewGuid());
-            var m1 = grainFactory.GetGrain<IManager>(Guid.NewGuid());
+            var e0 = client.GetGrain<IEmployee>(Guid.NewGuid());  
+            var e1 = client.GetGrain<IEmployee>(Guid.NewGuid());
+            var e2 = client.GetGrain<IEmployee>(Guid.NewGuid());
+            var e3 = client.GetGrain<IEmployee>(Guid.NewGuid());
+            var e4 = client.GetGrain<IEmployee>(Guid.NewGuid());
+
+            var m0 = client.GetGrain<IManager>(Guid.NewGuid());
+            var m1 = client.GetGrain<IManager>(Guid.NewGuid());
             var m0e = m0.AsEmployee().Result;
             var m1e = m1.AsEmployee().Result;
 

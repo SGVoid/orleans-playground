@@ -1,38 +1,45 @@
 ﻿using System;
+using System.Net.Sockets;
+using Microsoft.Extensions.Logging;
 using Orleans;
+using Orleans.Hosting;
 using Orleans.Runtime.Host;
 
 namespace ConsoleAppSiloHost
 {
     class Program
     {
-        static SiloHost siloHost;
+        static ISiloHost siloHost;
 
         static void Main(string[] args)
         {
             InitSilo();
 
-            //DoSomeClientWork();
-
             Console.WriteLine("Orleans Silo is running.\nPress Enter to terminate...");
             Console.ReadLine();
 
-            // We do a clean shutdown in the other AppDomain
             ShutdownSilo();
         }
 
 
         static void InitSilo()
         {
-            siloHost = new SiloHost(System.Net.Dns.GetHostName());
-            // The Cluster config is quirky and weird to configure in code, so we're going to use a config file
-            siloHost.ConfigFileName = "OrleansConfiguration.xml";
+            siloHost = new SiloHostBuilder()
+                .ConfigureEndpoints(30000, 11111)
+                .UseLocalhostClustering()
+                .ConfigureLogging(x => x.AddConsole())
+                .UseDashboard(options =>
+                {
+                    options.Username = "USERNAME";
+                    options.Password = "PASSWORD";
+                    options.Host = "*";
+                    options.Port = 8080;
+                    options.HostSelf = false;
+                    //options.CounterUpdateIntervalMs = 1000;
+                })
+                .Build();
 
-            siloHost.InitializeOrleansSilo();
-            var startedok = siloHost.StartOrleansSilo();
-            if (!startedok)
-                throw new SystemException(String.Format("Failed to start Orleans silo '{0}' as a {1} node", siloHost.Name, siloHost.Type));
-
+            siloHost.StartAsync().Wait();
         }
 
         static void ShutdownSilo()
